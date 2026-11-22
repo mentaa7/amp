@@ -30,3 +30,14 @@ Cadastro/login e sessão são integrados ao Supabase quando configurado. Campanh
 6. Teste o diário da campanha e atualize a lista.
 
 As campanhas antigas permanecem no armazenamento local e não são migradas automaticamente. Convites reais, entrada de outros usuários e sincronização em tempo real ainda não fazem parte desta etapa.
+
+
+## v1.2.0 — convites de campanhas online
+1. No Supabase, abra **SQL Editor**.
+2. Execute apenas a nova migration `supabase/migrations/202611210003_campaign_invites.sql`. Não é necessário repetir as migrations anteriores.
+3. Atualize/reinicie o projeto (`npm run dev`).
+4. Entre com sua conta e abra **Campanha > Campanhas online**.
+5. Selecione uma campanha que você criou como mestre e gere um código de convite. A validade padrão é de 7 dias; o limite de usos é opcional.
+6. O jogador precisa ter uma conta no Arquivo, entrar nela e informar o código na área **Entrar em uma campanha**.
+
+Os convites concedem somente o papel de jogador. A validação de validade, limite de usos e permissão do mestre acontece no banco, não apenas na interface. A migration é incremental e não apaga campanhas ou participantes existentes.
