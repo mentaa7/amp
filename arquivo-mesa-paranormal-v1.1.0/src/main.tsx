@@ -128,6 +128,45 @@ function App() {
     if (error) { setCloudMessage(`Não foi possível carregar os participantes: ${error.message}`); return; }
     setCloudMembers((data || []) as CloudMember[]);
   }
+  // Atualizações em tempo real das campanhas e participantes.
+  useEffect(() => {
+    if (!supabase || !authUser) return;
+
+    const channel = supabase
+      .channel(`arquivo-campaign-sync-${authUser.id}-${selectedCloudCampaign || 'all'}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'campaigns'
+      }, async (payload) => {
+        await loadCloudCampaigns();
+        const changedId = String((payload.new as any)?.id || (payload.old as any)?.id || '');
+        if (selectedCloudCampaign && changedId === selectedCloudCampaign) {
+          await loadCloudMembers(selectedCloudCampaign);
+          const { data } = await supabase
+            .from('campaigns')
+            .select('notes')
+            .eq('id', selectedCloudCampaign)
+            .maybeSingle();
+          if (data) setCloudNotes(data.notes || '');
+        }
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'campaign_members',
+        ...(selectedCloudCampaign ? { filter: `campaign_id=eq.${selectedCloudCampaign}` } : {})
+      }, async () => {
+        if (selectedCloudCampaign) await loadCloudMembers(selectedCloudCampaign);
+        await loadCloudCampaigns();
+      })
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [supabase, authUser, selectedCloudCampaign]);
+
   async function createCloudInvite() {
     if (!supabase || !selectedCloudCampaign) return;
     setCloudBusy(true); setCloudMessage('Gerando convite seguro...'); setCreatedInviteCode('');
